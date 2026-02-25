@@ -67,7 +67,7 @@ ft -re /var/log '.*(err|warn).*\\.log$'
 ### Key bindings
 - `q` / `ctrl+c` quit
 - `space` pause/resume (still collects new lines)
-- `f` toggle follow mode
+- `f` toggle follow mode (Follow auto-jumps to newest lines; Free keeps your scroll position)
 - `c` clear buffer
 - `p` toggle path display (grouped header vs inline)
 - arrows / page up/down scroll
