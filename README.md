@@ -77,3 +77,4 @@ ft -re /var/log '.*(err|warn).*\\.log$'
 - If a line is still being written (no trailing newline), it is shown with `...` and updated when completed.
 - Periodic rescans also pull in missed writes if filesystem events were dropped.
 - Periodic rescans remove deleted files/directories from the watch set if events were missed.
+- Text detection accepts UTF-8 and other non-binary encodings without NUL bytes.

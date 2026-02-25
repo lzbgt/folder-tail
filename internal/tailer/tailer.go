@@ -813,16 +813,35 @@ func isTextData(data []byte) bool {
 	if bytes.IndexByte(data, 0) >= 0 {
 		return false
 	}
+	if utf8.Valid(data) {
+		return isMostlyText(data)
+	}
 	contentType := http.DetectContentType(data)
 	if strings.HasPrefix(contentType, "text/") {
-		return true
+		return isMostlyText(data)
 	}
 	switch contentType {
 	case "application/json", "application/xml", "application/javascript", "application/x-www-form-urlencoded":
-		return true
+		return isMostlyText(data)
 	default:
-		return utf8.Valid(data)
+		return isMostlyText(data)
 	}
+}
+
+func isMostlyText(data []byte) bool {
+	if len(data) == 0 {
+		return true
+	}
+	control := 0
+	for _, b := range data {
+		if b == '\t' || b == '\n' || b == '\r' {
+			continue
+		}
+		if b < 0x20 || b == 0x7f {
+			control++
+		}
+	}
+	return float64(control)/float64(len(data)) <= 0.15
 }
 
 func truncateLineBytes(data []byte, max int) (string, bool) {

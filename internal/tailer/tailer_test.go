@@ -26,6 +26,19 @@ func TestIsTextData(t *testing.T) {
 	}
 }
 
+func TestIsTextDataNonUTF8(t *testing.T) {
+	// "中文" in GBK encoding (non-UTF8), no NUL bytes.
+	gbk := []byte{0xD6, 0xD0, 0xCE, 0xC4}
+	if !isTextData(gbk) {
+		t.Fatalf("expected non-utf8 text data to be accepted")
+	}
+	// Mostly control bytes should be treated as binary.
+	ctrl := []byte{0x01, 0x02, 0x03, 0x04, 0x7F, 0x08, 0x09}
+	if isTextData(ctrl) {
+		t.Fatalf("expected control-heavy data to be binary")
+	}
+}
+
 func TestTailLastLines(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "sample.log")
