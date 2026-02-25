@@ -152,6 +152,16 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.viewport.AtBottom() {
 			m.follow = true
 		}
+	case "[":
+		m.follow = false
+		m.viewport.PageUp()
+		return m, nil
+	case "]":
+		m.viewport.PageDown()
+		if m.viewport.AtBottom() {
+			m.follow = true
+		}
+		return m, nil
 	}
 
 	var cmd tea.Cmd

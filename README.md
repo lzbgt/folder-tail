@@ -70,7 +70,7 @@ ft -re /var/log '.*(err|warn).*\\.log$'
 - `f` toggle follow mode (Follow auto-jumps to newest lines; Free keeps your scroll position)
 - `c` clear buffer
 - `p` toggle path display (grouped header vs inline)
-- arrows / page up/down scroll
+- arrows / page up/down / `[` `]` scroll
 
 ## Notes
 - Lines are shown as `path: line`.
