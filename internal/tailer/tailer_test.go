@@ -26,6 +26,18 @@ func TestIsTextData(t *testing.T) {
 	}
 }
 
+func TestIsTextDataBinaryMagic(t *testing.T) {
+	if isTextData([]byte("FORM\x00\x00\x00\x10AIFF")) {
+		t.Fatalf("expected AIFF header to be binary")
+	}
+	if isTextData([]byte("RIFF\x00\x00\x00\x10WAVE")) {
+		t.Fatalf("expected RIFF/WAVE header to be binary")
+	}
+	if isTextData([]byte("fLaC\x00\x00\x00\x00")) {
+		t.Fatalf("expected FLAC header to be binary")
+	}
+}
+
 func TestIsTextDataNonUTF8(t *testing.T) {
 	// "中文" in GBK encoding (non-UTF8), no NUL bytes.
 	gbk := []byte{0xD6, 0xD0, 0xCE, 0xC4}
@@ -43,11 +55,15 @@ func TestBinaryExtSkippedWithoutPatterns(t *testing.T) {
 	dir := t.TempDir()
 	wav := filepath.Join(dir, "audio.wav")
 	bin := filepath.Join(dir, "data.bin")
+	aiff := filepath.Join(dir, "audio.aiff")
 	if err := os.WriteFile(wav, []byte("RIFF....WAVE"), 0644); err != nil {
 		t.Fatalf("write wav: %v", err)
 	}
 	if err := os.WriteFile(bin, []byte("BINARYDATA"), 0644); err != nil {
 		t.Fatalf("write bin: %v", err)
+	}
+	if err := os.WriteFile(aiff, []byte("FORM....AIFF"), 0644); err != nil {
+		t.Fatalf("write aiff: %v", err)
 	}
 
 	tailer := newTestTailer(dir, nil, nil, false)
@@ -56,6 +72,9 @@ func TestBinaryExtSkippedWithoutPatterns(t *testing.T) {
 	}
 	if ok, err := tailer.isTextFile(bin); err != nil || ok {
 		t.Fatalf("expected bin skipped, ok=%v err=%v", ok, err)
+	}
+	if ok, err := tailer.isTextFile(aiff); err != nil || ok {
+		t.Fatalf("expected aiff skipped, ok=%v err=%v", ok, err)
 	}
 }
 

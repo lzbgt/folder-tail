@@ -80,31 +80,57 @@ type Tailer struct {
 }
 
 var binaryExts = map[string]struct{}{
+	".aiff":   {},
+	".aif":    {},
+	".aifc":   {},
 	".7z":     {},
 	".a":      {},
 	".avi":    {},
 	".bin":    {},
+	".bmp":    {},
+	".bz2":    {},
 	".class":  {},
 	".db":     {},
 	".dylib":  {},
 	".exe":    {},
+	".flac":   {},
 	".gif":    {},
 	".gz":     {},
 	".jar":    {},
 	".jpeg":   {},
 	".jpg":    {},
+	".m4a":    {},
+	".m4v":    {},
+	".mpg":    {},
+	".mpeg":   {},
 	".mkv":    {},
 	".mov":    {},
 	".mp3":    {},
 	".mp4":    {},
 	".o":      {},
+	".ogg":    {},
 	".pdf":    {},
 	".png":    {},
+	".raw":    {},
+	".tgz":    {},
 	".so":     {},
 	".sqlite": {},
 	".tar":    {},
+	".tiff":   {},
+	".tif":    {},
 	".wav":    {},
+	".webm":   {},
+	".webp":   {},
+	".xz":     {},
+	".zst":    {},
 	".zip":    {},
+}
+
+var binarySuffixes = []string{
+	".tar.gz",
+	".tar.bz2",
+	".tar.xz",
+	".tar.zst",
 }
 
 func New(cfg Config) (*Tailer, error) {
@@ -841,22 +867,26 @@ func isTextData(data []byte) bool {
 	if bytes.IndexByte(data, 0) >= 0 {
 		return false
 	}
-	if utf8.Valid(data) {
-		return isMostlyText(data)
+	if hasBinaryMagic(data) {
+		return false
 	}
 	contentType := http.DetectContentType(data)
-	if strings.HasPrefix(contentType, "text/") {
-		return isMostlyText(data)
+	if isBinaryContentType(contentType) {
+		return false
 	}
-	switch contentType {
-	case "application/json", "application/xml", "application/javascript", "application/x-www-form-urlencoded":
-		return isMostlyText(data)
-	default:
-		return isMostlyText(data)
+
+	if utf8.Valid(data) {
+		return isMostlyTextUTF8(data)
 	}
+
+	if isExplicitTextContentType(contentType) {
+		return isMostlyTextNonUTF8(data)
+	}
+
+	return isMostlyTextNonUTF8(data)
 }
 
-func isMostlyText(data []byte) bool {
+func isMostlyTextUTF8(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
@@ -872,6 +902,92 @@ func isMostlyText(data []byte) bool {
 	return float64(control)/float64(len(data)) <= 0.15
 }
 
+func isMostlyTextNonUTF8(data []byte) bool {
+	if len(data) == 0 {
+		return true
+	}
+	control := 0
+	for _, b := range data {
+		if b == '\t' || b == '\n' || b == '\r' {
+			continue
+		}
+		if b < 0x20 || b == 0x7f || (b >= 0x80 && b <= 0x9f) {
+			control++
+		}
+	}
+	return float64(control)/float64(len(data)) <= 0.2
+}
+
+func isBinaryContentType(contentType string) bool {
+	contentType = strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0])
+	if contentType == "" {
+		return false
+	}
+	if strings.HasPrefix(contentType, "text/") {
+		return false
+	}
+	if strings.HasPrefix(contentType, "audio/") ||
+		strings.HasPrefix(contentType, "video/") ||
+		strings.HasPrefix(contentType, "image/") {
+		return true
+	}
+	switch contentType {
+	case "application/pdf",
+		"application/zip",
+		"application/gzip",
+		"application/x-gzip",
+		"application/x-bzip2",
+		"application/x-xz",
+		"application/x-7z-compressed",
+		"application/x-rar-compressed",
+		"application/x-tar":
+		return true
+	default:
+		return false
+	}
+}
+
+func isExplicitTextContentType(contentType string) bool {
+	contentType = strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0])
+	if strings.HasPrefix(contentType, "text/") {
+		return true
+	}
+	switch contentType {
+	case "application/json", "application/xml", "application/javascript", "application/x-www-form-urlencoded":
+		return true
+	default:
+		return false
+	}
+}
+
+func hasBinaryMagic(data []byte) bool {
+	if len(data) >= 12 && bytes.HasPrefix(data, []byte("RIFF")) {
+		tag := data[8:12]
+		if bytes.Equal(tag, []byte("WAVE")) || bytes.Equal(tag, []byte("AVI ")) {
+			return true
+		}
+	}
+	if len(data) >= 12 && bytes.HasPrefix(data, []byte("FORM")) {
+		tag := data[8:12]
+		if bytes.Equal(tag, []byte("AIFF")) || bytes.Equal(tag, []byte("AIFC")) {
+			return true
+		}
+	}
+	if len(data) >= 4 && bytes.HasPrefix(data, []byte("fLaC")) {
+		return true
+	}
+	if len(data) >= 4 && bytes.HasPrefix(data, []byte("OggS")) {
+		return true
+	}
+	if len(data) >= 3 && bytes.HasPrefix(data, []byte("ID3")) {
+		return true
+	}
+	if len(data) >= 8 && bytes.Equal(data[4:8], []byte("ftyp")) {
+		return true
+	}
+	return false
+}
+
 func (t *Tailer) isTextFile(path string) (bool, error) {
 	if !t.hasPatterns() && hasBinaryExt(path) {
 		return false, nil
@@ -884,7 +1000,13 @@ func (t *Tailer) hasPatterns() bool {
 }
 
 func hasBinaryExt(path string) bool {
-	ext := strings.ToLower(filepath.Ext(path))
+	pathLower := strings.ToLower(path)
+	for _, suffix := range binarySuffixes {
+		if strings.HasSuffix(pathLower, suffix) {
+			return true
+		}
+	}
+	ext := strings.ToLower(filepath.Ext(pathLower))
 	_, ok := binaryExts[ext]
 	return ok
 }
