@@ -39,6 +39,26 @@ func TestIsTextDataNonUTF8(t *testing.T) {
 	}
 }
 
+func TestBinaryExtSkippedWithoutPatterns(t *testing.T) {
+	dir := t.TempDir()
+	wav := filepath.Join(dir, "audio.wav")
+	bin := filepath.Join(dir, "data.bin")
+	if err := os.WriteFile(wav, []byte("RIFF....WAVE"), 0644); err != nil {
+		t.Fatalf("write wav: %v", err)
+	}
+	if err := os.WriteFile(bin, []byte("BINARYDATA"), 0644); err != nil {
+		t.Fatalf("write bin: %v", err)
+	}
+
+	tailer := newTestTailer(dir, nil, nil, false)
+	if ok, err := tailer.isTextFile(wav); err != nil || ok {
+		t.Fatalf("expected wav skipped, ok=%v err=%v", ok, err)
+	}
+	if ok, err := tailer.isTextFile(bin); err != nil || ok {
+		t.Fatalf("expected bin skipped, ok=%v err=%v", ok, err)
+	}
+}
+
 func TestTailLastLines(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "sample.log")

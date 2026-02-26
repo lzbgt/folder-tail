@@ -79,6 +79,34 @@ type Tailer struct {
 	mu         sync.Mutex
 }
 
+var binaryExts = map[string]struct{}{
+	".7z":     {},
+	".a":      {},
+	".avi":    {},
+	".bin":    {},
+	".class":  {},
+	".db":     {},
+	".dylib":  {},
+	".exe":    {},
+	".gif":    {},
+	".gz":     {},
+	".jar":    {},
+	".jpeg":   {},
+	".jpg":    {},
+	".mkv":    {},
+	".mov":    {},
+	".mp3":    {},
+	".mp4":    {},
+	".o":      {},
+	".pdf":    {},
+	".png":    {},
+	".so":     {},
+	".sqlite": {},
+	".tar":    {},
+	".wav":    {},
+	".zip":    {},
+}
+
 func New(cfg Config) (*Tailer, error) {
 	root := cfg.Root
 	if root == "" {
@@ -288,7 +316,7 @@ func (t *Tailer) scanAndRegister() error {
 			seenFiles[path] = struct{}{}
 			return nil
 		}
-		isText, err := isTextFile(path)
+		isText, err := t.isTextFile(path)
 		if err != nil {
 			t.sendErr(err)
 			return nil
@@ -356,7 +384,7 @@ func (t *Tailer) scanRoot() error {
 			seenFiles[path] = struct{}{}
 			continue
 		}
-		isText, err := isTextFile(path)
+		isText, err := t.isTextFile(path)
 		if err != nil {
 			t.sendErr(err)
 			continue
@@ -411,7 +439,7 @@ func (t *Tailer) scanDir(root string) error {
 			}
 			return nil
 		}
-		isText, err := isTextFile(path)
+		isText, err := t.isTextFile(path)
 		if err != nil {
 			t.sendErr(err)
 			return nil
@@ -458,7 +486,7 @@ func (t *Tailer) ensureFile(path string) {
 	if !t.shouldInclude(path) {
 		return
 	}
-	isText, err := isTextFile(path)
+	isText, err := t.isTextFile(path)
 	if err != nil || !isText {
 		return
 	}
@@ -842,6 +870,23 @@ func isMostlyText(data []byte) bool {
 		}
 	}
 	return float64(control)/float64(len(data)) <= 0.15
+}
+
+func (t *Tailer) isTextFile(path string) (bool, error) {
+	if !t.hasPatterns() && hasBinaryExt(path) {
+		return false, nil
+	}
+	return isTextFile(path)
+}
+
+func (t *Tailer) hasPatterns() bool {
+	return len(t.cfg.Include) > 0 || len(t.cfg.Exclude) > 0
+}
+
+func hasBinaryExt(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	_, ok := binaryExts[ext]
+	return ok
 }
 
 func truncateLineBytes(data []byte, max int) (string, bool) {
