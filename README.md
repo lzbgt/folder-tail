@@ -1,20 +1,5 @@
 # ft
 
-[![Paid_Go_CLI_TUI_Review](https://img.shields.io/badge/Paid_Go_CLI_TUI_Review-brightgreen)](https://x2.brucelu.top/gotui/checkout/?source=github-badge-folder-tail) [![Ask_First](https://img.shields.io/badge/Ask_First-blue)](https://x2.brucelu.top/products/contact/?offer=gotui&source=github-badge-folder-tail) [![Sample](https://img.shields.io/badge/Sample-informational)](https://x2.brucelu.top/gotui/sample/)
-
-## Paid Go CLI/TUI review
-
-Using this repo as a starting point for a real Go terminal tool, recursive file watcher, log tailer, or long-running TUI? I offer a focused Go CLI/TUI Reliability Review:
-
-- Ask a pre-sales question: https://x2.brucelu.top/products/contact/?offer=gotui&source=github-folder-tail-top
-- Sample deliverable: https://x2.brucelu.top/gotui/sample/
-- Checkout: https://x2.brucelu.top/gotui/checkout/?source=github-folder-tail-top
-
-Boundary: paid support is engineering review and setup guidance. It does not include managed operation, guaranteed marketplace adoption, or full feature delivery.
-
-
-TUI tool that tails **all text files** under a folder tree recursively and stays aware of new files as they appear.
-
 ## Features
 - Recursive tailing for existing files and newly created files.
 - Text-only detection to avoid binary noise.
